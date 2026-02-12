@@ -12,25 +12,72 @@
     <div class="card">
 
         <div id="status-display" class="listening-mode">
-            <div id="status-text">Speak Language</div>
+            <div id="status-text">Detecting Currency...</div>
         </div>
 
-        <!-- Laptop camera (OpenCV stream) -->
-        <img id="laptop-feed"
-             src="{{ url_for('video_feed') }}"
-             alt="Live Camera Feed">
-
-        <!-- Mobile camera -->
+        <!-- Mobile / Browser Camera -->
         <video id="mobile-video"
                autoplay
                playsinline
-               style="display:none;">
+               width="640"
+               height="480"
+               style="border: 1px solid #000;">
         </video>
 
     </div>
 
-    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/camera.js') }}"></script>
+    <script>
+        const video = document.getElementById('mobile-video');
+        const statusText = document.getElementById('status-text');
+
+        // Access mobile camera
+        navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
+            .then(stream => {
+                video.srcObject = stream;
+                video.play();
+                captureFrames();
+            })
+            .catch(err => {
+                console.error("Camera error:", err);
+                statusText.textContent = "Camera access denied";
+            });
+
+        // Capture frames every 1 second
+        function captureFrames() {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+
+            setInterval(async () => {
+                if (!video.videoWidth) return;
+
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+                const blob = await new Promise(resolve => canvas.toBlob(resolve, "image/jpeg"));
+
+                const formData = new FormData();
+                formData.append("frame", blob, "frame.jpg");
+
+                try {
+                    const res = await fetch("/detect_frame", {
+                        method: "POST",
+                        body: formData
+                    });
+                    const data = await res.json();
+
+                    statusText.textContent = data.notes.length
+                        ? "Detected: " + data.notes.join(", ")
+                        : "No currency detected";
+
+                } catch (err) {
+                    console.error("Detection error:", err);
+                    statusText.textContent = "Detection failed";
+                }
+
+            }, 1000); // 1 frame per second
+        }
+    </script>
 
 </body>
 </html>

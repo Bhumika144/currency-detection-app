@@ -9,21 +9,19 @@
     <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
     <meta name="theme-color" content="#0f172a">
 
-    <!-- External CSS -->
+    <!-- CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
     <div class="card">
 
         <div id="status-display" class="listening-mode">
-            <div id="status-text">Speak Language or Click a Button</div>
+            <div id="status-text">Speak Language or Click the Button</div>
         </div>
 
-        <!-- Laptop OpenCV camera feed -->
-        <img id="laptop-camera" src="{{ url_for('video_feed') }}" alt="Live Camera Feed">
-
-        <!-- Mobile back camera -->
-        <video id="video" autoplay playsinline style="display:none;"></video>
+        <!-- Video for mobile camera -->
+        <video id="video" autoplay playsinline></video>
+        <button id="start-btn">Start Currency Assistant</button>
 
     </div>
 
@@ -32,19 +30,10 @@
     <script src="{{ url_for('static', filename='js/camera.js') }}"></script>
 
     <script>
-        // Detect mobile and toggle visibility
-        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-        if (isMobile) {
-            document.getElementById("laptop-camera").style.display = "none";
-            document.getElementById("video").style.display = "block";
-        }
-    </script>
-
-    <!-- Service Worker -->
-    <script>
         if ("serviceWorker" in navigator) {
             navigator.serviceWorker.register("/static/sw.js")
-                .then(() => console.log("Service Worker Registered"));
+                .then(() => console.log("Service Worker Registered"))
+                .catch(err => console.log("SW registration failed:", err));
         }
     </script>
 </body>

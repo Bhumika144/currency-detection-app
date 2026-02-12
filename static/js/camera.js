@@ -1,49 +1,56 @@
 const video = document.getElementById("video");
+const SEND_INTERVAL = 1000;
 
-// Open mobile back camera
-function openBackCamera() {
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+function startCamera() {
+    const constraints = {
+        video: { facingMode: { exact: "environment" } },
+        audio: false
+    };
 
-    if (isMobile && video) {
-        navigator.mediaDevices.getUserMedia({
-            video: { facingMode: { exact: "environment" } }
-        })
+    navigator.mediaDevices.getUserMedia(constraints)
         .then(stream => {
             video.srcObject = stream;
             video.play();
-            startSendingFrames();
+            sendFramesLoop();
         })
-        .catch(err => console.error("Error opening back camera:", err));
-    }
+        .catch(err => {
+            console.log("Could not access back camera, using default:", err);
+            navigator.mediaDevices.getUserMedia({ video: true, audio: false })
+                .then(stream => {
+                    video.srcObject = stream;
+                    video.play();
+                    sendFramesLoop();
+                })
+                .catch(err2 => console.error("Camera error:", err2));
+        });
 }
 
-// Send frames to Flask every 500ms
-function startSendingFrames() {
+function sendFrame() {
+    if (!video.videoWidth || !video.videoHeight) return;
+
     const canvas = document.createElement("canvas");
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
     const ctx = canvas.getContext("2d");
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-    setInterval(() => {
-        if (video.videoWidth === 0 || video.videoHeight === 0) return;
+    canvas.toBlob(blob => {
+        const formData = new FormData();
+        formData.append("frame", blob, "frame.jpg");
 
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        const dataURL = canvas.toDataURL("image/jpeg");
-
-        fetch("/detect_mobile", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ image: dataURL })
-        })
-        .then(res => res.json())
-        .then(data => {
-            if (data.notes && data.notes.length > 0) {
-                processNotes(data.notes); // Use main.js voice function
-            }
-        })
-        .catch(err => console.error(err));
-    }, 500);
+        fetch("/detect_frame", { method: "POST", body: formData })
+            .then(res => res.json())
+            .then(data => {
+                if (data.notes && data.notes.length > 0) {
+                    if (typeof speakNotes === "function") speakNotes(data.notes);
+                }
+            })
+            .catch(err => console.log(err));
+    }, "image/jpeg");
 }
 
-// Trigger back camera on first tap
-document.body.addEventListener("click", () => openBackCamera(), { once: true });
+function sendFramesLoop() {
+    setInterval(sendFrame, SEND_INTERVAL);
+}
+
+startCamera();

@@ -3,15 +3,14 @@ import cv2
 from ultralytics import YOLO
 import threading
 import webbrowser
-import base64
 import numpy as np
 
 app = Flask(__name__)
 
-# Load Model
+# Load YOLO model
 model = YOLO("best_currency_v2.pt")
 
-# Laptop camera
+# Laptop camera setup
 camera = cv2.VideoCapture(0)
 camera.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
 camera.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
@@ -35,7 +34,6 @@ def generate_frames():
                     detected_notes.append(label)
 
         latest_notes = detected_notes
-
         annotated = results[0].plot()
         ret, buffer = cv2.imencode(".jpg", annotated)
         yield (b"--frame\r\nContent-Type: image/jpeg\r\n\r\n" + buffer.tobytes() + b"\r\n")
@@ -55,13 +53,14 @@ def video_feed():
 def get_notes():
     return jsonify({"notes": latest_notes})
 
-# New route for mobile camera frames
-@app.route("/detect_mobile", methods=["POST"])
-def detect_mobile():
-    global latest_notes
-    data = request.json
-    img_data = data["image"].split(",")[1]
-    nparr = np.frombuffer(base64.b64decode(img_data), np.uint8)
+# Mobile camera detection route
+@app.route("/detect_frame", methods=["POST"])
+def detect_frame():
+    if "frame" not in request.files:
+        return jsonify({"notes": []})
+
+    file = request.files["frame"]
+    nparr = np.frombuffer(file.read(), np.uint8)
     frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
 
     results = model(frame, conf=0.70, iou=0.5, verbose=False)
@@ -73,10 +72,11 @@ def detect_mobile():
                 label = model.names[int(box.cls[0])]
                 detected_notes.append(label)
 
+    global latest_notes
     latest_notes = detected_notes
     return jsonify({"notes": detected_notes})
 
 if __name__ == "__main__":
-    # Open browser automatically
+    # Auto-open browser
     threading.Timer(0.1, lambda: webbrowser.open("http://127.0.0.1:5000/")).start()
     app.run(host="0.0.0.0", port=5000, debug=False, threaded=True)

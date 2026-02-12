@@ -18,7 +18,6 @@ function loadVoices() {
 
 speechSynthesis.onvoiceschanged = loadVoices;
 
-
 /* ------------------ SPEAK FUNCTION ------------------ */
 function speak(text, callback = null) {
     window.speechSynthesis.cancel();
@@ -36,16 +35,12 @@ function speak(text, callback = null) {
     window.speechSynthesis.speak(speech);
 }
 
-
-/* ------------------ LANGUAGE SELECTION BY VOICE ------------------ */
-
+/* ------------------ LANGUAGE SELECTION ------------------ */
 function askLanguage() {
-
     speak("Please say your language. English, Hindi or Marathi.", startListening);
 }
 
 function startListening() {
-
     const SpeechRecognition =
         window.SpeechRecognition || window.webkitSpeechRecognition;
 
@@ -54,7 +49,6 @@ function startListening() {
     recognition.start();
 
     recognition.onresult = function (event) {
-
         let spokenText = event.results[0][0].transcript.toLowerCase();
         console.log("User said:", spokenText);
 
@@ -82,52 +76,42 @@ function startListening() {
     };
 }
 
-
 /* ------------------ NOTE DETECTION ------------------ */
 
-function checkNotes() {
-
+// Laptop OpenCV feed
+function checkNotesLaptop() {
     fetch("/get_notes")
         .then(res => res.json())
-        .then(data => {
-
-            if (!data.notes || data.notes.length === 0) return;
-
-            let total = data.notes.reduce((sum, n) => sum + parseInt(n), 0);
-            let text = "";
-
-            /* English */
-            if (currentLanguage === "en-IN") {
-                text = data.notes.join(" and ") +
-                    " detected. Sum is " + total;
-            }
-
-            /* Hindi */
-            else if (currentLanguage === "hi-IN") {
-                text = data.notes.join(" और ") +
-                    " नोट मिले। कुल योग " + total;
-            }
-
-            /* Marathi */
-            else if (currentLanguage === "mr-IN") {
-                text = data.notes.join(" आणि ") +
-                    " नोट सापडल्या. एकूण रक्कम " + total;
-            }
-
-            if (text !== lastSpokenText) {
-                lastSpokenText = text;
-                speak(text);
-            }
-
-        })
+        .then(data => processNotes(data.notes))
         .catch(err => console.log(err));
 }
 
+// Shared function to process notes & speak
+function processNotes(notes) {
+    if (!notes || notes.length === 0) return;
 
-function startDetection() {
-    setInterval(checkNotes, 2000);
+    let total = notes.reduce((sum, n) => sum + parseInt(n), 0);
+    let text = "";
+
+    if (currentLanguage === "en-IN") {
+        text = notes.join(" and ") + " detected. Sum is " + total;
+    } else if (currentLanguage === "hi-IN") {
+        text = notes.join(" और ") + " नोट मिले। कुल योग " + total;
+    } else if (currentLanguage === "mr-IN") {
+        text = notes.join(" आणि ") + " नोट सापडल्या. एकूण रक्कम " + total;
+    }
+
+    if (text !== lastSpokenText) {
+        lastSpokenText = text;
+        speak(text);
+    }
 }
 
+// Start detection for both laptop and mobile
+function startDetection() {
+    setInterval(checkNotesLaptop, 2000); // Laptop OpenCV feed
+    // Mobile frames handled in camera.js
+}
 
 /* ------------------ START SYSTEM ------------------ */
 window.onload = function () {

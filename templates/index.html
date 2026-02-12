@@ -19,23 +19,33 @@
             <div id="status-text">Speak Language or Click a Button</div>
         </div>
 
-        <!-- Updated video element for mobile back camera -->
-        <video id="video" autoplay playsinline></video>
+        <!-- Laptop OpenCV camera feed -->
+        <img id="laptop-camera" src="{{ url_for('video_feed') }}" alt="Live Camera Feed">
+
+        <!-- Mobile back camera -->
+        <video id="video" autoplay playsinline style="display:none;"></video>
 
     </div>
 
-    <!-- Main JS -->
+    <!-- JS -->
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
-    <!-- New camera JS for mobile back camera -->
     <script src="{{ url_for('static', filename='js/camera.js') }}"></script>
 
-    <!-- Service Worker Registration -->
+    <script>
+        // Detect mobile and toggle visibility
+        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+        if (isMobile) {
+            document.getElementById("laptop-camera").style.display = "none";
+            document.getElementById("video").style.display = "block";
+        }
+    </script>
+
+    <!-- Service Worker -->
     <script>
         if ("serviceWorker" in navigator) {
             navigator.serviceWorker.register("/static/sw.js")
                 .then(() => console.log("Service Worker Registered"));
         }
     </script>
-
 </body>
 </html>

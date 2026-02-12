@@ -1,7 +1,7 @@
 {
   "name": "Currency Assistant",
   "short_name": "CurrencyAI",
-  "start_url": "/",
+  "start_url": "/currency-detection-app/",
   "display": "standalone",
   "background_color": "#0f172a",
   "theme_color": "#0f172a",

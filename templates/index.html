@@ -19,12 +19,15 @@
             <div id="status-text">Speak Language or Click a Button</div>
         </div>
 
-        <img src="{{ url_for('video_feed') }}" alt="Live Camera Feed">
+        <!-- Updated video element for mobile back camera -->
+        <video id="video" autoplay playsinline></video>
 
     </div>
 
     <!-- Main JS -->
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <!-- New camera JS for mobile back camera -->
+    <script src="{{ url_for('static', filename='js/camera.js') }}"></script>
 
     <!-- Service Worker Registration -->
     <script>

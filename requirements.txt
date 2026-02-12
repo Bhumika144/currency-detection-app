@@ -3,3 +3,4 @@ gunicorn
 torch
 opencv-python
 numpy
+ultralytics
